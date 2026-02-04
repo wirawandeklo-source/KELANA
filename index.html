@@ -6,6 +6,7 @@
   <title>KELANA V4.0</title>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
   <style>
     :root { --accent: #2563eb; --bg: #f8fafc; --success: #22c55e; }
     body { font-family: system-ui, sans-serif; background: var(--bg); margin: 0; padding: 12px; }
@@ -80,7 +81,7 @@
 
 <script>
 // =========================================================
-// 👇👇 MASUKKAN URL GOOGLE SCRIPT YANG BARU DI SINI 👇👇
+// 👇👇 PASTE URL WEB APP ANDA DI SINI 👇👇
 const API_URL = "https://script.google.com/macros/s/AKfycbys55Dj38Q81yqYxyoGKFTeW5YtbYSD-w76_-e471TjMuIGBgpRcV4aVAkW0RerdY8A/exec"; 
 // =========================================================
 
@@ -177,6 +178,7 @@ async function bukaLaporan() {
   document.getElementById("modalIsi").innerHTML = `
     <h3 style="margin-top:0;">📊 Statistik & Laporan</h3>
     <div class="chart-container"><canvas id="chartProgram"></canvas></div><hr>
+    <label style="font-size:12px; font-weight:bold;">Filter Laporan:</label>
     <div style="display:flex; gap:5px; margin-bottom:5px;"><select id="lapTahun" class="input-form" style="margin:0;">${optTahun}</select><select id="lapBulan" class="input-form" style="margin:0;"><option value="Semua">Semua Bulan</option>${optBulan}</select></div>
     <div style="display:flex; gap:5px; margin-bottom:5px;"><select id="lapBanjar" class="input-form" style="margin:0;">${optBanjar}</select><select id="lapProg" class="input-form" style="margin:0;"><option value="Semua">Semua Program</option><option value="TBC">TBC</option><option value="DBD">DBD</option><option value="DIARE">DIARE</option><option value="ISPA">ISPA</option><option value="JIWA">JIWA</option><option value="PERKESMAS">PERKESMAS</option></select></div>
     <input type="text" id="lapDiag" class="input-form" placeholder="Cari Diagnosis...">
@@ -224,8 +226,26 @@ function ambilLokasi(id) {
   );
 }
 
-// Helper Functions
-function prosesVisit(rowId, nama, jml, noRM) { selectedRowId = rowId; fotoBuffer = {1:"",2:"",3:""}; document.getElementById("modalIsi").innerHTML = '<h3>Kunjungan: '+nama+'</h3><div style="display:flex; gap:5px; margin-bottom:10px;">'+createPhotoBox(1)+createPhotoBox(2)+createPhotoBox(3)+'</div><textarea id="v_catatan" class="input-form" placeholder="Catatan..."></textarea><input type="date" id="v_next" class="input-form"><button onclick="simpanVisit(\''+noRM+'\',\''+nama+'\','+jml+')" class="btn btn-visit">SIMPAN</button><button onclick="tutupModal()" class="btn" style="margin-top:10px; color:gray;">Batal</button>'; document.getElementById("modalGeneric").style.display = "block"; }
+// === FUNGSI PROSES VISIT (DENGAN LABEL REVISI) ===
+function prosesVisit(rowId, nama, jml, noRM) {
+  selectedRowId = rowId; fotoBuffer = {1:"",2:"",3:""};
+  document.getElementById("modalIsi").innerHTML = 
+    '<h3>Kunjungan: '+nama+'</h3>'+
+    '<div style="display:flex; gap:5px; margin-bottom:10px;">'+
+       createPhotoBox(1)+createPhotoBox(2)+createPhotoBox(3)+
+    '</div>'+
+    '<textarea id="v_catatan" class="input-form" placeholder="Catatan..."></textarea>'+
+    
+    // REVISI: MENAMBAHKAN LABEL DI ATAS TANGGAL
+    '<label style="font-size:12px; font-weight:bold; display:block; margin-bottom:5px;">Rencana Kunjungan Berikutnya:</label>'+
+    '<input type="date" id="v_next" class="input-form">'+
+    
+    '<button onclick="simpanVisit(\''+noRM+'\',\''+nama+'\','+jml+')" class="btn btn-visit">SIMPAN</button>'+
+    '<button onclick="tutupModal()" class="btn" style="margin-top:10px; color:gray;">Batal</button>';
+    
+  document.getElementById("modalGeneric").style.display = "block";
+}
+
 function tampilEdit(rowId) { var p = dataPasien.find(x=>x.rowId==rowId); selectedRowId=rowId; var optBjr = DAFTAR_BANJAR.map(b=>`<option value="${b}" ${p.banjar==b?'selected':''}>${b}</option>`).join(''); document.getElementById("modalIsi").innerHTML = '<h3>Edit</h3><input type="text" id="e_alamat" class="input-form" value="'+p.alamat+'"><select id="e_banjar" class="input-form">'+optBjr+'</select><div style="display:flex;"><input type="text" id="e_koordinat" class="input-form" value="'+p.koordinat+'"><button type="button" onclick="ambilLokasi(\'e_koordinat\')" class="btn">GPS</button></div><input id="e_noHP" class="input-form" value="'+p.noHP+'"><select id="e_program" class="input-form"><option value="TBC">TBC</option><option value="DBD">DBD</option><option value="DIARE">DIARE</option><option value="ISPA">ISPA</option><option value="JIWA">JIWA</option><option value="PERKESMAS">PERKESMAS</option></select><select id="e_status" class="input-form"><option value="Aktif">Aktif</option><option value="Sembuh">Sembuh</option><option value="Meninggal">Meninggal</option></select><input id="e_diagnosis" class="input-form" value="'+p.diagnosis+'"><button onclick="simpanEdit()" class="btn btn-visit">SIMPAN</button><button onclick="tutupModal()" class="btn">Batal</button>'; document.getElementById("e_program").value = p.program; document.getElementById("e_status").value = p.status; document.getElementById("modalGeneric").style.display="block"; }
 function createPhotoBox(n) { return `<div onclick="ambilFoto(${n})" style="flex:1; height:80px; border:2px dashed #cbd5e1; display:flex; align-items:center; justify-content:center; cursor:pointer;" id="boxFoto${n}">📷 ${n}<img id="imgFoto${n}" style="width:100%; height:100%; object-fit:cover; display:none;"></div>`; }
 function ambilFoto(n) { var i=document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=e=>{ var r=new FileReader(); r.onload=ev=>{fotoBuffer[n]=ev.target.result; document.getElementById("imgFoto"+n).src=ev.target.result; document.getElementById("imgFoto"+n).style.display="block";}; r.readAsDataURL(e.target.files[0]); }; i.click(); }
