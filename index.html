@@ -1,15 +1,238 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KELANA V4.0- Puskesmas IV Denpasar Selatan</title>
-    <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-        iframe { border: none; width: 100%; height: 100%; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KELANA V4.0</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root { --accent: #2563eb; --bg: #f8fafc; --success: #22c55e; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); margin: 0; padding: 12px; }
+    .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 6px solid #94a3b8; position: relative; }
+    .input-form { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; margin-bottom: 10px; font-size: 14px; }
+    .btn { padding: 10px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12px; flex: 1; text-align: center; }
+    .btn-visit { background: var(--accent); color: white; }
+    .header-btns { display: flex; gap: 10px; margin-bottom: 15px; }
+    #overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:2000; flex-direction:column; justify-content:center; align-items:center; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    #modalGeneric { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1500; }
+    .modal-content { background:white; border-radius:15px; padding:20px; max-width:90%; margin:20px auto; max-height: 85vh; overflow-y: auto; position: relative; top: 20px; }
+    .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-right: 5px; }
+    .bg-tbc { background: #fee2e2; color: #991b1b; } .bg-dbd { background: #fce7f3; color: #be185d; } .bg-diare { background: #fef3c7; color: #92400e; }
+    .bg-ispa { background: #ffedd5; color: #9a3412; } .bg-jiwa { background: #f3e8ff; color: #6b21a8; } .bg-perkesmas { background: #dcfce7; color: #166534; } .bg-umum { background: #f1f5f9; color: #475569; }
+    .diagnosis-text { font-style: italic; color: #64748b; font-size: 13px; margin-bottom: 5px; display: block; }
+    .chart-container { position: relative; height:200px; width:100%; margin-bottom: 20px; }
+  </style>
 </head>
 <body>
-    <iframe src="https://script.google.com/macros/s/AKfycbxfP-cFEvAh1Ml36pWznCLTboCKU6f_68QcU9IOUAN756X6cXy2D8ypsttpR1Q3z5NctQ/exec"></iframe>
+
+<div id="overlay"><div class="spinner"></div><div style="color:#555; font-weight:bold;">Memproses...</div></div>
+
+<div style="text-align:center; margin-bottom:15px;">
+  <h2 style="margin:0; color:var(--accent);">KELANA V4.0</h2>
+  <small>Puskesmas IV Denpasar Selatan</small>
+</div>
+
+<div class="header-btns">
+  <button onclick="toggleForm('formPasien')" class="btn btn-visit">+ Pasien Baru</button>
+  <button onclick="bukaLaporan()" class="btn" style="background:#64748b; color:white;">📊 Statistik</button>
+</div>
+
+<div id="formPasien" style="display:none; background:#fff; padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid #cbd5e1;">
+  <h4 style="margin-top:0; color:#475569;">Input Pasien Baru</h4>
+  <input type="text" id="f_noRM" class="input-form" placeholder="No. RM">
+  <input type="text" id="f_nama" class="input-form" placeholder="Nama Pasien">
+  <input type="text" id="f_alamat" class="input-form" placeholder="Alamat (Jalan/Gg)">
+  <select id="f_banjar" class="input-form">
+    <option value="" disabled selected>-- Pilih Banjar --</option>
+    <option value="Ambengan">Ambengan</option><option value="Puseh">Puseh</option><option value="Geladag">Geladag</option><option value="Dukuh Pesirahan">Dukuh Pesirahan</option>
+    <option value="Menesa">Menesa</option><option value="Sama">Sama</option>
+    <option value="Pitik">Pitik</option><option value="Pesanggaran">Pesanggaran</option>
+    <option value="Sawah">Sawah</option><option value="Begawan">Begawan</option>
+    <option value="Kepisah">Kepisah</option><option value="Karang Suwung">Karang Suwung</option>
+    <option value="Kaja">Kaja</option><option value="Pande">Pande</option>
+  </select>
+  <input type="tel" id="f_noHP" class="input-form" placeholder="No WA (08...)">
+  <div style="display:flex; gap:5px;">
+    <input type="text" id="f_koordinat" class="input-form" placeholder="Koordinat GPS">
+    <button type="button" onclick="ambilLokasi('f_koordinat')" class="btn" style="background:var(--success); color:white; flex:0.3;">📍 GPS</button>
+  </div>
+  <select id="f_program" class="input-form">
+    <option value="TBC">TBC</option><option value="DBD">DBD</option><option value="DIARE">DIARE</option>
+    <option value="ISPA">ISPA</option><option value="JIWA">JIWA</option><option value="PERKESMAS" selected>PERKESMAS</option>
+  </select>
+  <input type="text" id="f_diagnosis" class="input-form" placeholder="Diagnosis...">
+  <button onclick="simpanBaru()" class="btn btn-visit" style="width:100%;">SIMPAN DATA</button>
+</div>
+
+<div style="display: flex; gap: 8px; margin-bottom: 10px;">
+  <input type="text" id="cari" class="input-form" placeholder="🔍 Cari..." onkeyup="filterPasien()" style="margin-bottom: 0; flex: 2;">
+  <select id="filterProgram" class="input-form" onchange="filterPasien()" style="margin-bottom: 0; flex: 1; background: white;">
+    <option value="Semua">🌈 Semua</option><option value="TBC">TBC</option><option value="DBD">DBD</option>
+    <option value="DIARE">DIARE</option><option value="ISPA">ISPA</option><option value="JIWA">JIWA</option><option value="PERKESMAS">PERKESMAS</option>
+  </select>
+</div>
+
+<div id="daftarPasien" style="padding-bottom: 50px;">Memuat data...</div>
+<div id="modalGeneric"><div class="modal-content" id="modalIsi"></div></div>
+
+<script>
+// =========================================================
+// 👇👇 MASUKKAN URL GOOGLE SCRIPT YANG BARU DI SINI 👇👇
+const API_URL = "https://script.google.com/macros/s/AKfycbyRYXk1IfCrCQ27_KbiWEq4qISu_sGKlU_yQPrh8NKjmAoFk4AWachu7kjYjhHLjslexg/exec"; 
+// =========================================================
+
+var dataPasien = []; var selectedRowId = null; var fotoBuffer = { 1: "", 2: "", 3: "" };
+const DAFTAR_BANJAR = ["Ambengan", "Puseh", "Geladag", "Dukuh Pesirahan", "Menesa", "Sama", "Pitik", "Pesanggaran", "Sawah", "Begawan", "Kepisah", "Karang Suwung", "Kaja", "Pande"];
+
+function msg(icon, title, text) { Swal.fire({ icon: icon, title: title, text: text, confirmButtonColor: '#2563eb', heightAuto: false }); }
+function showLoading(show) { document.getElementById("overlay").style.display = show ? "flex" : "none"; }
+
+window.onload = function() { muatData(); };
+
+async function apiRequest(act, data = {}) {
+  try {
+    let url = API_URL + "?action=" + act;
+    let opts = { method: "GET" };
+    if(["simpan","update","visit","simpanLaporan"].includes(act)) {
+      url = API_URL;
+      opts = { method: "POST", body: JSON.stringify({ action: act, ...data }), headers: { "Content-Type": "text/plain" } };
+      const r = await fetch(url, opts); const t = await r.text();
+      try { return JSON.parse(t); } catch(e) { return { error: t }; }
+    } else {
+      const params = new URLSearchParams({ action: act, ...data });
+      const r = await fetch(API_URL + "?" + params.toString());
+      return await r.json();
+    }
+  } catch(e) { return { error: "Koneksi Gagal" }; }
+}
+
+async function muatData() {
+  showLoading(true); const res = await apiRequest("getPasien"); showLoading(false);
+  if(Array.isArray(res)) { dataPasien = res; dataPasien.sort((a,b)=>a.nama.localeCompare(b.nama)); renderPasien(dataPasien); }
+  else { msg('error','Gagal','Gagal memuat data'); }
+}
+
+function renderPasien(list) {
+  var html = list.map(function(p) {
+    var waLink = p.noHP ? 'https://wa.me/' + p.noHP.replace(/^0/,'62').replace(/[^0-9]/g, '') : '#';
+    var peta = 'https://www.google.com/maps?q=' + p.koordinat;
+    var badgeClass = 'bg-umum';
+    if(p.program.includes('TBC')) badgeClass = 'bg-tbc'; else if(p.program.includes('DBD')) badgeClass = 'bg-dbd'; else if(p.program.includes('DIARE')) badgeClass = 'bg-diare';
+    else if(p.program.includes('ISPA')) badgeClass = 'bg-ispa'; else if(p.program.includes('JIWA')) badgeClass = 'bg-jiwa'; else if(p.program.includes('PERKESMAS')) badgeClass = 'bg-perkesmas';
+
+    return '<div class="card">' +
+      '<div style="font-weight:bold; font-size:16px;">' + p.nama + ' <small>(' + p.noRM + ')</small></div>' +
+      '<div style="margin-top:5px;"><span class="badge '+badgeClass+'">' + (p.program || "Umum") + '</span></div>' +
+      '<span class="diagnosis-text">🩺 ' + (p.diagnosis || "-") + '</span>' +
+      '<div style="font-size:13px; margin:5px 0;">📍 <b>' + p.banjar + '</b> - ' + p.alamat + '</div>' +
+      '<div style="font-size:13px; margin:5px 0;">📞 WA: <a href="' + waLink + '" target="_blank" style="color:var(--accent); text-decoration:none;"><b>' + (p.noHP || '-') + '</b></a></div>' +
+      '<div style="font-size:13px;">🕒 Kunjungan: ' + p.jmlKunjungan + 'x | Terakhir: ' + p.tglTerakhir + '</div>' +
+      '<div style="display:flex; gap:5px; margin-top:10px;">' +
+        '<a href="' + peta + '" target="_blank" class="btn" style="background:var(--success); color:white; text-decoration:none;">📍 Rute</a>' +
+        '<button onclick="tampilEdit(' + p.rowId + ')" class="btn" style="background:#e2e8f0;">✏️ Edit</button>' +
+        '<button onclick="tampilRiwayat(\'' + p.noRM + '\',\'' + p.nama + '\')" class="btn" style="background:#f1f5f9;">📜 Log</button>' +
+        '<button onclick="prosesVisit(' + p.rowId + ',\'' + p.nama + '\',' + p.jmlKunjungan + ',\'' + p.noRM + '\')" class="btn btn-visit">✅ Kunjungi</button>' +
+      '</div></div>';
+  }).join('');
+  document.getElementById("daftarPasien").innerHTML = html || '<div style="text-align:center; padding:20px; color:gray;">Data tidak ditemukan.</div>';
+}
+
+function filterPasien() {
+  var k = document.getElementById("cari").value.toLowerCase();
+  var pf = document.getElementById("filterProgram").value;
+  renderPasien(dataPasien.filter(p => (p.nama.toLowerCase().includes(k) || p.banjar.toLowerCase().includes(k) || p.diagnosis.toLowerCase().includes(k)) && (pf === "Semua" || p.program === pf)));
+}
+
+async function simpanBaru() {
+  var d = { noRM: document.getElementById("f_noRM").value, nama: document.getElementById("f_nama").value, alamat: document.getElementById("f_alamat").value, banjar: document.getElementById("f_banjar").value, noHP: document.getElementById("f_noHP").value, koordinat: document.getElementById("f_koordinat").value, program: document.getElementById("f_program").value, diagnosis: document.getElementById("f_diagnosis").value };
+  if(!d.nama || !d.koordinat) return msg('warning', 'Data Kurang', "Nama dan GPS wajib!");
+  showLoading(true); const res = await apiRequest("simpan", { data: d }); showLoading(false);
+  if(res == "Sukses") { msg('success', 'Berhasil', 'Tersimpan'); toggleForm('formPasien'); muatData(); } else { msg('error', 'Gagal', 'Gagal simpan'); }
+}
+
+async function simpanEdit() {
+  var d = { alamat: document.getElementById("e_alamat").value, banjar: document.getElementById("e_banjar").value, koordinat: document.getElementById("e_koordinat").value, noHP: document.getElementById("e_noHP").value, program: document.getElementById("e_program").value, diagnosis: document.getElementById("e_diagnosis").value, status: document.getElementById("e_status").value };
+  showLoading(true); const res = await apiRequest("update", { rowId: selectedRowId, data: d }); showLoading(false);
+  if(res == "Sukses") { tutupModal(); msg('success', 'Berhasil', 'Data diupdate'); muatData(); } else { msg('error', 'Gagal', 'Gagal update'); }
+}
+
+async function simpanVisit(noRM, nama, jml) {
+  var cat = document.getElementById("v_catatan").value; var next = document.getElementById("v_next").value;
+  if(!cat) return msg('warning', 'Belum Lengkap', "Isi catatan!");
+  var fotos = []; if(fotoBuffer[1]) fotos.push(fotoBuffer[1]); if(fotoBuffer[2]) fotos.push(fotoBuffer[2]); if(fotoBuffer[3]) fotos.push(fotoBuffer[3]);
+  showLoading(true); const res = await apiRequest("visit", { rowId: selectedRowId, noRM: noRM, nama: nama, jml: jml, catatan: cat, next: next, fotos: fotos }); showLoading(false);
+  if(res == "Sukses") { tutupModal(); msg('success', 'Berhasil', 'Kunjungan dicatat'); muatData(); } else { msg('error', 'Gagal', 'Gagal simpan'); }
+}
+
+async function bukaLaporan() {
+  showLoading(true); const stats = await apiRequest("getStats"); showLoading(false);
+  var now = new Date(); var curYear = now.getFullYear(); var curMonth = now.getMonth();
+  var optTahun = `<option value="${curYear}">${curYear}</option><option value="${curYear-1}">${curYear-1}</option>`;
+  var optBulan = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"].map((n,i)=>`<option value="${i}" ${i===curMonth?'selected':''}>${n}</option>`).join('');
+  var optBanjar = `<option value="Semua">Semua Banjar</option>` + DAFTAR_BANJAR.map(b=>`<option value="${b}">${b}</option>`).join('');
+
+  document.getElementById("modalIsi").innerHTML = `
+    <h3 style="margin-top:0;">📊 Statistik & Laporan</h3>
+    <div class="chart-container"><canvas id="chartProgram"></canvas></div><hr>
+    <div style="display:flex; gap:5px; margin-bottom:5px;"><select id="lapTahun" class="input-form" style="margin:0;">${optTahun}</select><select id="lapBulan" class="input-form" style="margin:0;"><option value="Semua">Semua Bulan</option>${optBulan}</select></div>
+    <div style="display:flex; gap:5px; margin-bottom:5px;"><select id="lapBanjar" class="input-form" style="margin:0;">${optBanjar}</select><select id="lapProg" class="input-form" style="margin:0;"><option value="Semua">Semua Program</option><option value="TBC">TBC</option><option value="DBD">DBD</option><option value="DIARE">DIARE</option><option value="ISPA">ISPA</option><option value="JIWA">JIWA</option><option value="PERKESMAS">PERKESMAS</option></select></div>
+    <input type="text" id="lapDiag" class="input-form" placeholder="Cari Diagnosis...">
+    <button onclick="updateIsiLaporan()" class="btn" style="background:#e2e8f0; color:black; margin-bottom:10px;">🔄 Filter</button>
+    <textarea id="teksLaporan" class="input-form" style="height:150px; font-size:12px;" readonly>Memuat...</textarea>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button onclick="unduhLaporan()" class="btn" style="background:#0ea5e9; color:white;">📥 Copy</button>
+      <button onclick="prosesSimpanLaporan()" class="btn" style="background:var(--success); color:white;">💾 SIMPAN KE DRIVE</button>
+      <button onclick="tutupModal()" class="btn btn-visit">TUTUP</button>
+    </div>`;
+  document.getElementById("modalGeneric").style.display = "block";
+  renderChart(stats); updateIsiLaporan();
+}
+
+async function updateIsiLaporan() {
+  document.getElementById("teksLaporan").value = "Mengambil data...";
+  const res = await apiRequest("getLaporan", { thn: document.getElementById("lapTahun").value, bln: document.getElementById("lapBulan").value, prog: document.getElementById("lapProg").value, bjr: document.getElementById("lapBanjar").value, diag: document.getElementById("lapDiag").value });
+  document.getElementById("teksLaporan").value = res;
+}
+
+async function prosesSimpanLaporan() {
+  showLoading(true); const res = await apiRequest("simpanLaporan", { isi: document.getElementById("teksLaporan").value }); showLoading(false);
+  msg('success', 'Berhasil', res);
+}
+
+async function tampilRiwayat(rm, n) {
+  document.getElementById("modalIsi").innerHTML = '<h3>Log: '+n+'</h3><div id="listLog">Memuat...</div><button onclick="tutupModal()" class="btn btn-visit" style="width:100%;">TUTUP</button>';
+  document.getElementById("modalGeneric").style.display = "block";
+  const logs = await apiRequest("getLog", { rm: rm });
+  document.getElementById("listLog").innerHTML = logs.map(l => {
+    let foto = l.foto ? l.foto.split(',').map((f,i)=>`<a href="${f}" target="_blank" style="margin-right:5px;">📷${i+1}</a>`).join('') : '';
+    return `<div style="border-bottom:1px solid #eee; padding:10px 0;"><small>📅 ${l.tgl}</small><br>${l.cat}<br>${foto}</div>`;
+  }).join('');
+}
+
+// GPS CLIENT SIDE (AMAN DI GITHUB)
+function ambilLokasi(id) {
+  var output = document.getElementById(id);
+  if (!navigator.geolocation) { msg('error', 'Maaf', 'Browser tidak support GPS.'); return; }
+  output.value = "Mencari...";
+  navigator.geolocation.getCurrentPosition(
+    function(pos) { output.value = pos.coords.latitude + "," + pos.coords.longitude; msg('success', 'Sukses', 'Lokasi ditemukan!'); },
+    function(err) { msg('error', 'Gagal', 'Izin Ditolak / Sinyal Lemah'); output.value=""; },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+// Helper Functions
+function prosesVisit(rowId, nama, jml, noRM) { selectedRowId = rowId; fotoBuffer = {1:"",2:"",3:""}; document.getElementById("modalIsi").innerHTML = '<h3>Kunjungan: '+nama+'</h3><div style="display:flex; gap:5px; margin-bottom:10px;">'+createPhotoBox(1)+createPhotoBox(2)+createPhotoBox(3)+'</div><textarea id="v_catatan" class="input-form" placeholder="Catatan..."></textarea><input type="date" id="v_next" class="input-form"><button onclick="simpanVisit(\''+noRM+'\',\''+nama+'\','+jml+')" class="btn btn-visit">SIMPAN</button><button onclick="tutupModal()" class="btn" style="margin-top:10px; color:gray;">Batal</button>'; document.getElementById("modalGeneric").style.display = "block"; }
+function tampilEdit(rowId) { var p = dataPasien.find(x=>x.rowId==rowId); selectedRowId=rowId; var optBjr = DAFTAR_BANJAR.map(b=>`<option value="${b}" ${p.banjar==b?'selected':''}>${b}</option>`).join(''); document.getElementById("modalIsi").innerHTML = '<h3>Edit</h3><input type="text" id="e_alamat" class="input-form" value="'+p.alamat+'"><select id="e_banjar" class="input-form">'+optBjr+'</select><div style="display:flex;"><input type="text" id="e_koordinat" class="input-form" value="'+p.koordinat+'"><button type="button" onclick="ambilLokasi(\'e_koordinat\')" class="btn">GPS</button></div><input id="e_noHP" class="input-form" value="'+p.noHP+'"><select id="e_program" class="input-form"><option value="TBC">TBC</option><option value="DBD">DBD</option><option value="DIARE">DIARE</option><option value="ISPA">ISPA</option><option value="JIWA">JIWA</option><option value="PERKESMAS">PERKESMAS</option></select><select id="e_status" class="input-form"><option value="Aktif">Aktif</option><option value="Sembuh">Sembuh</option><option value="Meninggal">Meninggal</option></select><input id="e_diagnosis" class="input-form" value="'+p.diagnosis+'"><button onclick="simpanEdit()" class="btn btn-visit">SIMPAN</button><button onclick="tutupModal()" class="btn">Batal</button>'; document.getElementById("e_program").value = p.program; document.getElementById("e_status").value = p.status; document.getElementById("modalGeneric").style.display="block"; }
+function createPhotoBox(n) { return `<div onclick="ambilFoto(${n})" style="flex:1; height:80px; border:2px dashed #cbd5e1; display:flex; align-items:center; justify-content:center; cursor:pointer;" id="boxFoto${n}">📷 ${n}<img id="imgFoto${n}" style="width:100%; height:100%; object-fit:cover; display:none;"></div>`; }
+function ambilFoto(n) { var i=document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=e=>{ var r=new FileReader(); r.onload=ev=>{fotoBuffer[n]=ev.target.result; document.getElementById("imgFoto"+n).src=ev.target.result; document.getElementById("imgFoto"+n).style.display="block";}; r.readAsDataURL(e.target.files[0]); }; i.click(); }
+function unduhLaporan() { navigator.clipboard.writeText(document.getElementById("teksLaporan").value); msg('success','Disalin',''); }
+function renderChart(s) { new Chart(document.getElementById('chartProgram').getContext('2d'), { type: 'doughnut', data: { labels: ['TBC','DBD','DIARE','ISPA','JIWA','PERKESMAS'], datasets: [{ data: [s.TBC,s.DBD,s.DIARE,s.ISPA,s.JIWA,s.PERKESMAS], backgroundColor: ['#ef4444','#db2777','#eab308','#f97316','#a855f7','#22c55e'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } }); }
+function tutupModal() { document.getElementById("modalGeneric").style.display = "none"; }
+function toggleForm(id) { var f = document.getElementById(id); f.style.display = f.style.display == "none" ? "block" : "none"; }
+</script>
 </body>
 </html>
